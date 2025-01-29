@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Emoji Fighter Ultimate</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .background-emoji {
+            position: absolute;
+            font-size: 30vw;
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #bg-emoji1 {
+            top: 10%;
+            left: 10%;
+        }
+
+        #bg-emoji2 {
+            bottom: 10%;
+            right: 10%;
+        }
+
+        .fighter {
+            position: absolute;
+            bottom: 20%;
+            font-size: 80px;
+            user-select: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+            z-index: 2;
+        }
+
+        #player {
+            left: 20%;
+        }
+
+        #cpu {
+            right: 20%;
+        }
+
+        .health-bar {
+            position: absolute;
+            top: 20px;
+            width: 300px;
+            height: 30px;
+            background: #444;
+            border-radius: 5px;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        #player-health {
+            left: 20px;
+        }
+
+        #cpu-health {
+            right: 20px;
+        }
+
+        .health-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        #player-health .health-fill {
+            background: #00ff00;
+        }
+
+        #cpu-health .health-fill {
+            background: #ff0000;
+        }
+
+        .timer {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 40px;
+            color: white;
+            text-shadow: 2px 2px 4px black;
+            z-index: 1;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1;
+        }
+
+        button {
+            padding: 15px 25px;
+            font-size: 20px;
+            cursor: pointer;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #666;
+        }
+
+        .selection-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 3;
+        }
+
+        .selection-title {
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .emoji-option {
+            font-size: 50px;
+            margin: 10px;
+            padding: 15px;
+            cursor: pointer;
+            border: 2px solid #444;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .emoji-option:hover {
+            background: #333;
+        }
+
+        .effect {
+            position: absolute;
+            pointer-events: none;
+            animation: fade 1s forwards;
+            z-index: 2;
+        }
+
+        @keyframes fade {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+
+        .blood {
+            color: #ff0000;
+            font-size: 40px;
+        }
+
+        .punch {
+            color: #ffffff;
+            font-size: 30px;
+        }
+
+        .shield {
+            color: #00ffff;
+            font-size: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cooldown {
+            filter: grayscale(80%);
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="background-emoji" id="bg-emoji1"></div>
+        <div class="background-emoji" id="bg-emoji2"></div>
+
+        <div class="selection-screen" id="scenario-select">
+            <h2 class="selection-title">Escolha o Cenário:</h2>
+            <div class="emoji-option" onclick="selectScenario('brasil')">🇧🇷⚽</div>
+            <div class="emoji-option" onclick="selectScenario('japao')">🇯🇵🗻</div>
+            <div class="emoji-option" onclick="selectScenario('egito')">🇪🇬🐫</div>
+            <div class="emoji-option" onclick="selectScenario('australia')">🇦🇺🦘</div>
+            <div class="emoji-option" onclick="selectScenario('eua')">🇺🇸🗽</div>
+        </div>
+
+        <div class="selection-screen" id="character-select" style="display: none;">
+            <h2 class="selection-title">Escolha seu Personagem:</h2>
+            <div class="emoji-option" onclick="selectCharacter('🦸♂️')">🦸♂️</div>
+            <div class="emoji-option" onclick="selectCharacter('🐵')">🐵</div>
+            <div class="emoji-option" onclick="selectCharacter('🧙♂️')">🧙♂️</div>
+            <div class="emoji-option" onclick="selectCharacter('🦁')">🦁</div>
+            <div class="emoji-option" onclick="selectCharacter('🐯')">🐯</div>
+        </div>
+
+        <div class="fighter" id="player"></div>
+        <div class="fighter" id="cpu"></div>
+
+        <div class="health-bar" id="player-health">
+            <div class="health-fill" style="width: 100%"></div>
+        </div>
+
+        <div class="health-bar" id="cpu-health">
+            <div class="health-fill" style="width: 100%"></div>
+        </div>
+
+        <div class="timer" id="timer">03:00</div>
+
+        <div class="controls">
+            <button onclick="movePlayer(-20)">&lt;</button>
+            <button onclick="attack('high')">Alto</button>
+            <button onclick="attack('medium')">Médio</button>
+            <button onclick="attack('low')">Baixo</button>
+            <button onclick="defend()" id="defend-btn">Defesa</button>
+            <button onclick="movePlayer(20)">&gt;</button>
+        </div>
+    </div>
+
+    <script>
+        const scenarios = {
+            brasil: { emojis: ['🇧🇷', '⚽'] },
+            japao: { emojis: ['🇯🇵', '🗻'] },
+            egito: { emojis: ['🇪🇬', '🐫'] },
+            australia: { emojis: ['🇦🇺', '🦘'] },
+            eua: { emojis: ['🇺🇸', '🗽'] }
+        };
+
+        const characters = ['🦸♂️', '🐵', '🧙♂️', '🦁', '🐯'];
+        let playerHP = 100;
+        let cpuHP = 100;
+        let timeLeft = 180;
+        let gameInterval;
+        let selectedScenario;
+        let isDefending = false;
+        let defendCooldown = false;
+        let playerCharacter = '🦸♂️';
+        let cpuCharacter = '🦁';
+
+        function selectScenario(scenario) {
+            selectedScenario = scenario;
+            document.getElementById('scenario-select').style.display = 'none';
+            document.getElementById('character-select').style.display = 'block';
+            
+            // Atualiza background
+            const bgEmojis = scenarios[scenario].emojis;
+            document.getElementById('bg-emoji1').textContent = bgEmojis[0];
+            document.getElementById('bg-emoji2').textContent = bgEmojis[1];
+        }
+
+        function selectCharacter(emoji) {
+            playerCharacter = emoji;
+            document.getElementById('character-select').style.display = 'none';
+            startGame();
+        }
+
+        function updateDirections() {
+            const player = document.getElementById('player');
+            const cpu = document.getElementById('cpu');
+            const playerX = parseFloat(player.style.left);
+            const cpuX = 100 - parseFloat(cpu.style.right);
+
+            player.style.transform = `scaleX(${playerX > cpuX ? -1 : 1})`;
+            cpu.style.transform = `scaleX(${cpuX > playerX ? -1 : 1})`;
+        }
+
+        function movePlayer(amount) {
+            const player = document.getElementById('player');
+            const currentLeft = parseFloat(player.style.left) || 20;
+            const newPosition = Math.min(Math.max(currentLeft + amount, 5), 70);
+            player.style.left = `${newPosition}%`;
+            updateDirections();
+        }
+
+        function updateHealth() {
+            document.querySelector('#player-health .health-fill').style.width = `${playerHP}%`;
+            document.querySelector('#cpu-health .health-fill').style.width = `${cpuHP}%`;
+        }
+
+        function calculateDamage(type) {
+            const damages = {
+                high: [15, 25],
+                medium: [10, 15],
+                low: [5, 10]
+            };
+            return Math.floor(Math.random() * (damages[type][1] - damages[type][0])) + damages[type][0];
+        }
+
+        function createEffect(emoji, x, y, className) {
+            const effect = document.createElement('div');
+            effect.className = `effect ${className}`;
+            effect.textContent = emoji;
+            effect.style.left = `${x}%`;
+            effect.style.top = `${y}%`;
+            document.getElementById('game-container').appendChild(effect);
+            setTimeout(() => effect.remove(), 1000);
+        }
+
+        function moveCPU() {
+            const cpu = document.getElementById('cpu');
+            const player = document.getElementById('player');
+            const playerX = parseFloat(player.style.left);
+            const cpuX = 100 - parseFloat(cpu.style.right);
+            
+            const moveAmount = Math.random() * 15 + 5;
+            const newX = cpuX + (playerX > cpuX ? moveAmount : -moveAmount);
+            const finalX = Math.min(Math.max(newX, 5), 70);
+            
+            cpu.style.right = `${100 - finalX}%`;
+            updateDirections();
+        }
+
+        function cpuBehavior() {
+            moveCPU();
+            
+            if (Math.random() < 0.3) {
+                const attacks = ['high', 'medium', 'low'];
+                const attackType = attacks[Math.floor(Math.random() * attacks.length)];
+                cpuAttack(attackType);
+            }
+        }
+
+        function cpuAttack(type) {
+            const cpu = document.getElementById('cpu');
+            const rect = cpu.getBoundingClientRect();
+            createEffect('💥', 
+                (rect.left + rect.width/2) / window.innerWidth * 100,
+                (rect.top + rect.height/2) / window.innerHeight * 100,
+                'punch'
+            );
+
+            setTimeout(() => {
+                if (!isDefending) {
+                    const damage = calculateDamage(type);
+                    playerHP = Math.max(0, playerHP - damage);
+                    createEffect('💢', 
+                        (rect.left + rect.width/2) / window.innerWidth * 100,
+                        (rect.top + rect.height/2) / window.innerHeight * 100,
+                        'blood'
+                    );
+                    updateHealth();
+                    if (playerHP <= 0) endGame('cpu');
+                } else {
+                    createEffect('🛡️', 
+                        (rect.left + rect.width/2) / window.innerWidth * 100,
+                        (rect.top + rect.height/2) / window.innerHeight * 100,
+                        'shield'
+                    );
+                }
+            }, 200);
+        }
+
+        function attack(type) {
+            const player = document.getElementById('player');
+            const rect = player.getBoundingClientRect();
+            createEffect('💥', 
+                (rect.left + rect.width/2) / window.innerWidth * 100,
+                (rect.top + rect.height/2) / window.innerHeight * 100,
+                'punch'
+            );
+
+            setTimeout(() => {
+                const damage = calculateDamage(type);
+                cpuHP = Math.max(0, cpuHP - damage);
+                createEffect('💢', 
+                    100 - parseFloat(document.getElementById('cpu').style.right) - 5,
+                    50,
+                    'blood'
+                );
+                updateHealth();
+                if (cpuHP <= 0) endGame('player');
+            }, 200);
+
+            setTimeout(cpuBehavior, 500);
+        }
+
+        function defend() {
+            if (!defendCooldown) {
+                isDefending = true;
+                defendCooldown = true;
+                const btn = document.getElementById('defend-btn');
+                btn.classList.add('cooldown');
+                
+                createEffect('🛡️', 
+                    parseFloat(document.getElementById('player').style.left) + 5,
+                    50,
+                    'shield'
+                );
+
+                setTimeout(() => {
+                    isDefending = false;
+                }, 2000);
+
+                setTimeout(() => {
+                    defendCooldown = false;
+                    btn.classList.remove('cooldown');
+                }, 4000);
+            }
+        }
+
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const seconds = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+
+            if (timeLeft <= 0) endGame('time');
+            timeLeft--;
+        }
+
+        function endGame(winner) {
+            clearInterval(gameInterval);
+            let message;
+            
+            if (winner === 'time') {
+                message = playerHP > cpuHP ? "Vitória por tempo!" : "Derrota por tempo!";
+            } else {
+                message = winner === 'player' ? "Você venceu!" : "Você perdeu!";
+            }
+
+            alert(message);
+            location.reload();
+        }
+
+        function startGame() {
+            // Seleciona personagem da CPU
+            const availableChars = characters.filter(c => c !== playerCharacter);
+            cpuCharacter = availableChars[Math.floor(Math.random() * availableChars.length)];
+            
+            document.getElementById('player').textContent = playerCharacter;
+            document.getElementById('cpu').textContent = cpuCharacter;
+
+            gameInterval = setInterval(() => {
+                updateTimer();
+                cpuBehavior();
+            }, 1000);
+            
+            document.getElementById('player').style.left = '20%';
+            document.getElementById('cpu').style.right = '20%';
+            updateDirections();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') movePlayer(-20);
+            if (e.key === 'ArrowRight') movePlayer(20);
+        });
+    </script>
+</body>
+</html>
